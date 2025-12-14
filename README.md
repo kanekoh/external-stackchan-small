@@ -41,6 +41,26 @@ npm run dev      # ts-node live
 npm run build && npm start  # compiled
 ```
 
+### Run with Docker/Podman
+```bash
+# build
+docker build -t stackchan-bot:latest .
+# run (adjust network_mode if MQTT is on the host)
+docker run --rm --env-file .env stackchan-bot:latest
+# Podman example (host network for MQTT on the Pi host)
+podman run --rm --env-file .env --network host stackchan-bot:latest
+```
+
+### Run with Compose
+```bash
+docker compose up --build -d
+# MQTT on host? set network_mode: host in docker-compose.yml or update MQTT_URL
+```
+
+### Auto-start on Raspberry Pi
+- Docker: enable the compose service on boot via systemd (`docker compose up -d` in a systemd service) or use `restart: unless-stopped` (already set).
+- Podman: `podman generate systemd --new --name stackchan-bot > /etc/systemd/system/stackchan-bot.service` and `systemctl enable --now stackchan-bot`.
+
 ## Environment
 See `.env.example`. Important ones:
 - `SLACK_BOT_TOKEN` (`xoxb-...`), `SLACK_SIGNING_SECRET`, `SLACK_APP_TOKEN` (`xapp-...` for Socket Mode) — Slack app credentials。

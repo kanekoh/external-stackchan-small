@@ -1,0 +1,12 @@
+version: "3.9"
+
+services:
+  stackchan-bot:
+    build: .
+    env_file:
+      - .env
+    restart: unless-stopped
+    # If your MQTT broker is on the host, uncomment the next line
+    # network_mode: host
+    # Otherwise set MQTT_URL to the container hostname or IP.
+    command: ["node", "dist/index.js"]
