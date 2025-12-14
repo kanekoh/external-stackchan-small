@@ -6,7 +6,7 @@ services:
     env_file:
       - .env
     restart: unless-stopped
-    # If your MQTT broker is on the host, uncomment the next line
-    # network_mode: host
-    # Otherwise set MQTT_URL to the container hostname or IP.
+    # Use host network so DNS/ports are the same as the Pi host (Podman-friendly).
+    network_mode: host
+    # If you prefer bridge mode, remove the above line and set MQTT_URL to the broker host/IP.
     command: ["node", "dist/index.js"]
