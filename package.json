@@ -1,0 +1,28 @@
+{
+  "name": "slack-ai-bot",
+  "version": "1.0.0",
+  "description": "Slack + MQTT Stack-chan bot with OpenAI",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "ts-node src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "sim": "ts-node src/mqtt/simulator.ts"
+  },
+  "dependencies": {
+    "@slack/bolt": "^3.19.0",
+    "dotenv": "^16.4.5",
+    "mqtt": "^5.0.7",
+    "openai": "^4.52.0",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.30",
+    "@types/uuid": "^9.0.7",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
