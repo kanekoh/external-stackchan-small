@@ -54,7 +54,8 @@ podman run --rm --env-file .env --network host stackchan-bot:latest
 ### Run with Compose
 ```bash
 docker compose up --build -d
-# MQTT on host? set network_mode: host in docker-compose.yml or update MQTT_URL
+# docker-compose.yml はデフォルトで network_mode: host（Podman での DNS/疎通対策）。
+# ブリッジに戻す場合は network_mode を削除し、MQTT_URL をブローカーのホスト/IPに合わせて設定。
 ```
 
 ### Auto-start on Raspberry Pi
