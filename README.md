@@ -7,7 +7,7 @@ Slack-first assistant for Stack-chan. It chats with a playful personality, route
 - 日本語でかわいく応答するスタックチャン人格。
 - `/stack` slash command with subcommands: `say`, `volume`, `motion`, `expression`, `listen`, `brightness`, `status`.
 - Intent router for normal messages (CHAT / COMMAND / QUERY) with confirmation flow for commands and danger checks.
-- OpenAI integration (単一モデル指定、考察モードなし)。
+- OpenAI integration: Responses API + Conversations API（ユーザーごとに会話スレッドを維持、メモリ保持）。
 - MQTT request/response with correlated acks and state cache.
 - Stack-chan simulator (no hardware needed).
 - 履歴はOpenAI側（非永続）に任せるためローカルDBには保存しません。
@@ -66,6 +66,7 @@ docker compose up --build -d
 See `.env.example`. Important ones:
 - `SLACK_BOT_TOKEN` (`xoxb-...`), `SLACK_SIGNING_SECRET`, `SLACK_APP_TOKEN` (`xapp-...` for Socket Mode) — Slack app credentials。
 - `OPENAI_API_KEY`, `OPENAI_MODEL_FAST`（使用するモデル名）。
+- `OPENAI_CONVERSATION_ID`（任意。指定すると既存の Conversation を使い回す。未指定ならユーザーごとに新規作成しメモリ保持）。
 - `MQTT_URL` for Mosquitto.
 - `ALLOWED_SLACK_USER_IDS` comma list for COMMANDs.
 

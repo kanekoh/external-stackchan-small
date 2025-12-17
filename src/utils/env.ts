@@ -4,6 +4,7 @@ export type Env = {
   SLACK_APP_TOKEN: string;
   OPENAI_API_KEY: string;
   OPENAI_MODEL_FAST: string;
+  OPENAI_CONVERSATION_ID?: string;
   MQTT_URL: string;
   MQTT_USERNAME?: string;
   MQTT_PASSWORD?: string;
@@ -34,6 +35,7 @@ export function loadEnv(): Env {
     SLACK_APP_TOKEN: process.env.SLACK_APP_TOKEN!,
     OPENAI_API_KEY: process.env.OPENAI_API_KEY!,
     OPENAI_MODEL_FAST: process.env.OPENAI_MODEL_FAST || "gpt-4o-mini",
+    OPENAI_CONVERSATION_ID: process.env.OPENAI_CONVERSATION_ID,
     MQTT_URL: process.env.MQTT_URL || "mqtt://localhost:1883",
     MQTT_USERNAME: process.env.MQTT_USERNAME,
     MQTT_PASSWORD: process.env.MQTT_PASSWORD,
