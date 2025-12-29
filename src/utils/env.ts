@@ -13,6 +13,15 @@ export type Env = {
   STACKCHAN_CMD_TOPIC: string;
   STACKCHAN_ACK_TOPIC: string;
   STACKCHAN_STATE_TOPIC: string;
+  TRELLO_KEY?: string;
+  TRELLO_TOKEN?: string;
+  TRELLO_BOARD_ID?: string;
+  TRELLO_POLL_INTERVAL_MS: number;
+  TRELLO_DUE_SOON_MINUTES: number;
+  TRELLO_NOTIFY_TOPIC: string;
+  TRELLO_SAY_VIA_CMD: boolean;
+  MQTT_COMMAND_MAX_ATTEMPTS: number;
+  MQTT_COMMAND_BASE_DELAY_MS: number;
 };
 
 export function loadEnv(): Env {
@@ -47,5 +56,14 @@ export function loadEnv(): Env {
     STACKCHAN_CMD_TOPIC: process.env.STACKCHAN_CMD_TOPIC || "stackchan/cmd",
     STACKCHAN_ACK_TOPIC: process.env.STACKCHAN_ACK_TOPIC || "stackchan/ack",
     STACKCHAN_STATE_TOPIC: process.env.STACKCHAN_STATE_TOPIC || "stackchan/state",
+    TRELLO_KEY: process.env.TRELLO_KEY,
+    TRELLO_TOKEN: process.env.TRELLO_TOKEN,
+    TRELLO_BOARD_ID: process.env.TRELLO_BOARD_ID,
+    TRELLO_POLL_INTERVAL_MS: Number(process.env.TRELLO_POLL_INTERVAL_MS || 300000),
+    TRELLO_DUE_SOON_MINUTES: Number(process.env.TRELLO_DUE_SOON_MINUTES || 120),
+    TRELLO_NOTIFY_TOPIC: process.env.TRELLO_NOTIFY_TOPIC || "stackchan/trello",
+    TRELLO_SAY_VIA_CMD: process.env.TRELLO_SAY_VIA_CMD === "true",
+    MQTT_COMMAND_MAX_ATTEMPTS: Number(process.env.MQTT_COMMAND_MAX_ATTEMPTS || 3),
+    MQTT_COMMAND_BASE_DELAY_MS: Number(process.env.MQTT_COMMAND_BASE_DELAY_MS || 1000),
   };
 }

@@ -25,27 +25,29 @@ function guessIntent(text: string): Intent {
 }
 
 function parseCommandText(text: string, userId: string): CommandRequest | null {
-  const lower = text.toLowerCase();
+  const trimmed = text.trim();
+  const lower = trimmed.toLowerCase();
 
-  if (lower.startsWith("say ")) {
-    const content = text.slice(4).trim();
+  const sayMatch = trimmed.match(/^say[\s\u3000]+(.+)/i);
+  if (sayMatch) {
+    const content = sayMatch[1].trim();
     if (content.length === 0) return null;
     return { type: "say", payload: { text: content }, userId, originalText: text };
   }
 
-  const volumeMatch = lower.match(/volume\s+(\d{1,3})/);
+  const volumeMatch = trimmed.match(/^volume[\s\u3000]+(\d{1,3})/i);
   if (volumeMatch) {
     const volume = Number(volumeMatch[1]);
     if (volume < 0 || volume > 100) return null;
     return { type: "volume", payload: { volume }, userId, originalText: text };
   }
 
-  const motionMatch = lower.match(/motion\s+([a-z0-9_-]+)/);
+  const motionMatch = trimmed.match(/^motion[\s\u3000]+([a-z0-9_-]+)/i);
   if (motionMatch) {
     return { type: "motion", payload: { motion: motionMatch[1] }, userId, originalText: text };
   }
 
-  const expressionMatch = lower.match(/expression\s+([a-z0-9_-]+)/);
+  const expressionMatch = trimmed.match(/^expression[\s\u3000]+([a-z0-9_-]+)/i);
   if (expressionMatch) {
     return {
       type: "expression",
@@ -55,17 +57,17 @@ function parseCommandText(text: string, userId: string): CommandRequest | null {
     };
   }
 
-  const brightnessMatch = lower.match(/brightness\s+(\d{1,3})/);
+  const brightnessMatch = trimmed.match(/^brightness[\s\u3000]+(\d{1,3})/i);
   if (brightnessMatch) {
     const brightness = Number(brightnessMatch[1]);
     if (brightness < 0 || brightness > 100) return null;
     return { type: "brightness", payload: { brightness }, userId, originalText: text };
   }
 
-  if (lower.includes("listen on")) {
+  if (/listen[\s\u3000]+on/i.test(trimmed)) {
     return { type: "listen", payload: { listen: true }, userId, originalText: text };
   }
-  if (lower.includes("listen off")) {
+  if (/listen[\s\u3000]+off/i.test(trimmed)) {
     return { type: "listen", payload: { listen: false }, userId, originalText: text };
   }
 
@@ -95,10 +97,32 @@ export function registerRoutes(
   llm: LlmClient,
   logger: Logger
 ) {
+  const sendCommandWithRewrite = async (cmd: CommandRequest) => {
+    let payload = cmd.payload;
+    if (cmd.type === "say") {
+      const text = (cmd.payload as any).text;
+      if (typeof text === "string") {
+        try {
+          const rewritten = await llm.toStackchanSpeech(text);
+          logger.info("Say payload rewritten for Stack-chan", {
+            userId: cmd.userId,
+            originalLength: text.length,
+            rewrittenLength: rewritten.length,
+          });
+          payload = { text: rewritten };
+        } catch (err) {
+          logger.warn("Say rewrite failed; using original text", { message: String(err) });
+        }
+      }
+    }
+    return mqtt.sendCommand({ type: cmd.type, payload });
+  };
+
   // Slash command
   app.command("/stack", async ({ command, ack, respond }) => {
     await ack();
     const userId = command.user_id;
+    logger.debug("Slash command received", { text: command.text, userId });
     if (!env.ALLOWED_SLACK_USER_IDS.includes(userId)) {
       await respond("ごめんね、このコマンドは許可されたユーザーだけが使えるの。チャットやステータス確認ならいつでもどうぞ！");
       return;
@@ -127,7 +151,8 @@ export function registerRoutes(
 
     await respond("がんばって送信するね…！");
     try {
-      const ackMsg = await mqtt.sendCommand(parsed);
+      logger.info("Slash command sending", { type: parsed.type, userId });
+      const ackMsg = await sendCommandWithRewrite(parsed);
       await respond(`Ack: ${ackMsg.status}${ackMsg.message ? ` (${ackMsg.message})` : ""}`);
     } catch (err) {
       logger.error("Command failed", { message: String(err) });
@@ -162,7 +187,7 @@ export function registerRoutes(
     }
 
     try {
-      const ackMsg = await mqtt.sendCommand(cmd);
+      const ackMsg = await sendCommandWithRewrite(cmd);
       await client.chat.postMessage({
         channel: cmd.userId,
         text: `Ack: ${ackMsg.status}${ackMsg.message ? ` (${ackMsg.message})` : ""}`,
@@ -228,6 +253,7 @@ export function registerRoutes(
         await say("コマンドは許可ユーザーだけなんだ…でもチャットやステータスならいつでもOK！");
         return;
       }
+      logger.debug("DM command parsed", { type: cmd.type, userId });
 
       const dangerous = isDangerous(cmd);
       const blocks = dangerous ? buildDangerBlocks(cmd) : buildCommandBlocks(cmd);

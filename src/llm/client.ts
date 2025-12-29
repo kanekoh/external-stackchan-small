@@ -22,6 +22,24 @@ export class LlmClient {
     this.conversations = new Map();
   }
 
+  private extractText(response: any): string {
+    const fallback = (() => {
+      const outputs = Array.isArray(response.output) ? response.output : [];
+      for (const item of outputs) {
+        if ((item as any).type === "output_text" && typeof (item as any).text === "string") {
+          return (item as any).text as string;
+        }
+        const content = (item as any).content;
+        if (Array.isArray(content)) {
+          const textPart = content.find((c: any) => c?.type === "text" && typeof c.text === "string");
+          if (textPart) return textPart.text as string;
+        }
+      }
+      return "";
+    })();
+    return (response.output_text || fallback || "").trim();
+  }
+
   private async ensureConversation(userId: string): Promise<string | null> {
     // If an explicit conversation ID is provided, reuse it for all users.
     if (this.env.OPENAI_CONVERSATION_ID) return this.env.OPENAI_CONVERSATION_ID;
@@ -53,27 +71,51 @@ export class LlmClient {
       payload.conversation = conversationId;
     }
     const response = await (this.openai as any).responses.create(payload);
-
-    // Prefer the convenience field; fall back to first text-like block if missing.
-    const fallback = (() => {
-      const outputs = Array.isArray(response.output) ? response.output : [];
-      for (const item of outputs) {
-        // Some items are { type: "output_text", text: "..." }
-        if ((item as any).type === "output_text" && typeof (item as any).text === "string") {
-          return (item as any).text as string;
-        }
-        // Some items are { type: "output_text", content: [{ type: "text", text: "..." }, ...] }
-        const content = (item as any).content;
-        if (Array.isArray(content)) {
-          const textPart = content.find((c: any) => c?.type === "text" && typeof c.text === "string");
-          if (textPart) return textPart.text as string;
-        }
-      }
-      return "";
-    })();
-
-    const text = (response.output_text || fallback || "うーん、もう一回教えてほしいかも…！").trim();
+    const text = this.extractText(response) || "うーん、もう一回教えてほしいかも…！";
     this.logger.debug("LLM response", { model, length: text.length });
+    return text;
+  }
+
+  async toStackchanSpeech(message: string): Promise<string> {
+    const model = this.env.OPENAI_MODEL_FAST;
+    const payload = {
+      model,
+      input: [
+        {
+          role: "system",
+          content:
+            "あなたはスーパーかわいいアシスタントロボットスタックチャン。次のメッセージをユーザーからの伝聞としてスタックチャンが話す一文に整えて返してください。長すぎず、かわいく、意味を変えないで。",
+        },
+        { role: "user", content: message },
+      ],
+    };
+
+    const response = await (this.openai as any).responses.create(payload);
+    const text = this.extractText(response) || message.trim();
+    this.logger.debug("LLM say rewrite", { model, length: text.length });
+    return text;
+  }
+
+  async trelloDueSoonToSpeech(cards: { name: string; dueInMinutes: number }[]): Promise<string> {
+    const model = this.env.OPENAI_MODEL_FAST;
+    const list = cards
+      .slice(0, 3)
+      .map((c, idx) => `${idx + 1}. ${c.name}（あと${c.dueInMinutes}分）`)
+      .join("\n");
+    const payload = {
+      model,
+      input: [
+        {
+          role: "system",
+          content:
+            "あなたはスタックチャン。期限が近いタスクを短くかわいく声掛けします。ユーザーを焦らせず、やる気が出るように伝えてください。30〜80文字程度で。",
+        },
+        { role: "user", content: `期限が近いタスクは:\n${list}` },
+      ],
+    };
+    const response = await (this.openai as any).responses.create(payload);
+    const text = this.extractText(response) || "期限が近いタスクがあるよ。";
+    this.logger.debug("LLM trello due speech", { model, length: text.length });
     return text;
   }
 }

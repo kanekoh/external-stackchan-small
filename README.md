@@ -56,6 +56,9 @@ podman run --rm --env-file .env --network host stackchan-bot:latest
 docker compose up --build -d
 # docker-compose.yml はデフォルトで network_mode: host（Podman での DNS/疎通対策）。
 # ブリッジに戻す場合は network_mode を削除し、MQTT_URL をブローカーのホスト/IPに合わせて設定。
+
+# podman-compose で再ビルド＆同名プロジェクトで起動する場合
+podman-compose -p stackchan-bot up --build -d
 ```
 
 ### Auto-start on Raspberry Pi
@@ -69,6 +72,16 @@ See `.env.example`. Important ones:
 - `OPENAI_CONVERSATION_ID`（任意。指定すると既存の Conversation を使い回す。未指定ならユーザーごとに新規作成しメモリ保持）。
 - `MQTT_URL` for Mosquitto.
 - `ALLOWED_SLACK_USER_IDS` comma list for COMMANDs.
+- Trello連携（任意）: `TRELLO_KEY`, `TRELLO_TOKEN`, `TRELLO_BOARD_ID`, `TRELLO_POLL_INTERVAL_MS`, `TRELLO_DUE_SOON_MINUTES`, `TRELLO_NOTIFY_TOPIC`
+
+### Trello連携
+期限が近いカードを定期ポーリングして MQTT に通知します。設定しなければ無効のままです。
+- `TRELLO_KEY` / `TRELLO_TOKEN` / `TRELLO_BOARD_ID` を設定
+- `TRELLO_POLL_INTERVAL_MS` ポーリング間隔 (ms, デフォルト5分)
+- `TRELLO_DUE_SOON_MINUTES` 何分以内を「近い」とみなすか (デフォルト120分)
+- `TRELLO_NOTIFY_TOPIC` 通知先トピック (デフォルト `stackchan/trello`)
+- `TRELLO_SAY_VIA_CMD` `true` なら LLM で生成した声掛けを `STACKCHAN_CMD_TOPIC` に `type: say` で publish（ACK は待ちません）
+- MQTTコマンド再送: `MQTT_COMMAND_MAX_ATTEMPTS`（試行回数、デフォルト3）, `MQTT_COMMAND_BASE_DELAY_MS`（指数バックオフの初期待機ms、デフォルト1000）
 
 ## Using the bot
 - DM the bot: normal chat uses Stack-chan personality.
